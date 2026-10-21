@@ -3,53 +3,14 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: kivy/buildozer:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create spec and Build
-        run: |
-          cd $GITHUB_WORKSPACE
-          ls -la
-          if [ ! -f buildozer.spec ]; then
-            cat > buildozer.spec << 'EOF'
-          [app]
-          title = TecnoFreitas
-          package.name = tecnofreitas
-          package.domain = com.gomes.tecnofreitas
-          source.dir = .
-          source.include_exts = py,png,jpg,kv,atlas,json
-          version = 0.1
-          requirements = python3,kivy==2.3.0,Pillow
-          orientation = portrait
-          fullscreen = 0
-          android.permissions = INTERNET
-          android.api = 33
-          android.minapi = 21
-          android.ndk = 25b
-          android.sdk = 33
-          android.accept_sdk_license_agreement = True
-          p4a.bootstrap = sdl2
-
-          [buildozer]
-          log_level = 2
-          warn_on_root = 0
-          EOF
-          fi
-          cat buildozer.spec
-          echo "Patchando root..."
-          find / -type f -name "__init__.py" -path "*buildozer*" 2>/dev/null | xargs sed -i 's/self.check_root()/pass # self.check_root()/g' || true
-          echo "Aceitando licencas Android..."
-          mkdir -p /github/home/.buildozer/android/platform/android-sdk/licenses
-          mkdir -p /home/user/.buildozer/android/platform/android-sdk/licenses
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > /home/user/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> /home/user/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
-          find / -name sdkmanager 2>/dev/null | head -5
-          for SDKMAN in $(find / -name sdkmanager 2>/dev/null); do echo "Tentando $SDKMAN"; yes | $SDKMAN --licenses || true; done
-          echo "Construindo..."
-          buildozer android debug
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        with:
+          workdir: .
+          command: buildozer android debug
+          buildozer_version: stable
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
