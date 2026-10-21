@@ -10,11 +10,8 @@ jobs:
       - name: Create spec and Build
         run: |
           cd $GITHUB_WORKSPACE
-          pwd
           ls -la
-          # Se não tiver spec, cria um
           if [ ! -f buildozer.spec ]; then
-            echo "Criando buildozer.spec..."
             cat > buildozer.spec << 'EOF'
           [app]
           title = TecnoFreitas
@@ -30,18 +27,27 @@ jobs:
           android.api = 33
           android.minapi = 21
           android.ndk = 25b
+          android.sdk = 33
           android.accept_sdk_license_agreement = True
+          p4a.bootstrap = sdl2
 
           [buildozer]
           log_level = 2
           warn_on_root = 0
-
-          [app:storage]
           EOF
           fi
           cat buildozer.spec
-          echo "Patchando root check..."
+          echo "Patchando root..."
           find / -type f -name "__init__.py" -path "*buildozer*" 2>/dev/null | xargs sed -i 's/self.check_root()/pass # self.check_root()/g' || true
+          echo "Aceitando licencas Android..."
+          mkdir -p /github/home/.buildozer/android/platform/android-sdk/licenses
+          mkdir -p /home/user/.buildozer/android/platform/android-sdk/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > /home/user/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> /home/user/.buildozer/android/platform/android-sdk/licenses/android-sdk-license || true
+          find / -name sdkmanager 2>/dev/null | head -5
+          for SDKMAN in $(find / -name sdkmanager 2>/dev/null); do echo "Tentando $SDKMAN"; yes | $SDKMAN --licenses || true; done
           echo "Construindo..."
           buildozer android debug
       - name: Upload APK
