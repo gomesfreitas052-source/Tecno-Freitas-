@@ -5,17 +5,15 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: kivy/buildozer:latest
+      options: --user user
     steps:
       - uses: actions/checkout@v4
       - name: Fix root check and build
         run: |
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          fi
-          sed -i 's/warn_on_root = 1/warn_on_root = 0/' buildozer.spec || true
-          sed -i 's/#.*warn_on_root.*/warn_on_root = 0/' buildozer.spec || true
-          grep -q "warn_on_root" buildozer.spec || echo "warn_on_root = 0" >> buildozer.spec
-          echo y | buildozer android debug
+          whoami
+          pwd
+          ls -la
+          buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
