@@ -5,33 +5,36 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Install deps
+      - name: Install system deps
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev
-          pip install cython==0.29.36 buildozer
-          yes | sdkmanager --licenses
-          sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
-      - name: Create spec
+          sudo apt install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev libbz2-dev
+          pip install --upgrade pip
+          pip install buildozer cython==0.29.36
+      - name: Accept Android licenses
         run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Create buildozer.spec
+        run: |
+          rm -f buildozer.spec
           cat > buildozer.spec << 'EOF'
           [app]
           title = Tecno Freitas
           package.name = tecnofreitas
           package.domain = com.tecno.freitas
           source.dir = .
-          source.include_exts = py,png,jpg,kv
+          source.include_exts = py,png,jpg,kv,json
           version = 0.1
           requirements = python3,kivy
           orientation = portrait
           [buildozer]
           log_level = 2
+          warn_on_root = 1
           [app:android]
           android.api = 33
           android.minapi = 21
