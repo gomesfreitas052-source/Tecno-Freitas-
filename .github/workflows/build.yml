@@ -8,27 +8,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install system deps
+      - name: Install deps
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev libbz2-dev
-          pip install --upgrade pip
+          sudo apt install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev
           pip install buildozer cython==0.29.36
-      - name: Accept Android licenses
+          mkdir -p ~/.android
+          mkdir -p ~/.android/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> ~/.android/licenses/android-sdk-license
+          echo "24333f8a63b6825ea9c5514f83c1059b8ea3b9b4" >> ~/.android/licenses/android-sdk-license
+          echo "y" | sdkmanager --licenses || true
+      - name: Create spec
         run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-      - name: Create buildozer.spec
-        run: |
-          rm -f buildozer.spec
           cat > buildozer.spec << 'EOF'
           [app]
           title = Tecno Freitas
           package.name = tecnofreitas
           package.domain = com.tecno.freitas
           source.dir = .
-          source.include_exts = py,png,jpg,kv,json
+          source.include_exts = py,png,jpg,kv
           version = 0.1
           requirements = python3,kivy
           orientation = portrait
@@ -39,13 +38,19 @@ jobs:
           android.api = 33
           android.minapi = 21
           android.ndk = 25b
-          android.sdk_path = /usr/local/lib/android/sdk
           android.accept_sdk_license_agreement = True
           p4a.build_tools_version = 33.0.2
           EOF
-          cat buildozer.spec
       - name: Build APK
-        run: buildozer -v android debug
+        run: |
+          yes | buildozer -v android debug || true
+          # aceita a licenca na pasta do buildozer e tenta de novo
+          BUILD_SDK=~/.buildozer/android/platform/android-sdk
+          if [ -d "$BUILD_SDK/cmdline-tools" ]; then
+            yes | $BUILD_SDK/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            $BUILD_SDK/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" || true
+          fi
+          buildozer -v android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
