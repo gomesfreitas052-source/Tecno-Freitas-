@@ -9,19 +9,11 @@ jobs:
       - name: Install deps
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk python3-pip zip unzip libffi-dev libssl-dev
+          sudo apt install -y openjdk-17-jdk python3-pip zip unzip libffi-dev libssl-dev wget
           pip3 install --upgrade pip
-          pip3 install buildozer cython==0.29.36
-
-      - name: Accept Android licenses
-        run: |
-          mkdir -p ~/.android
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo "24333f8a63b6825ea9c5514f83c1059b8ea884" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-          echo "y" | sdkmanager --licenses 2>/dev/null || true
-          yes | sdkmanager --licenses 2>/dev/null || true
+          pip3 install cython==0.29.36
+          pip3 install https://github.com/kivy/buildozer/archive/master.zip
+          pip3 install https://github.com/kivy/python-for-android/archive/develop.zip
 
       - name: Create spec
         run: |
@@ -35,18 +27,38 @@ jobs:
           version = 0.1
           requirements = python3,kivy==2.3.0,Pillow
           orientation = portrait
-          fullscreen = 0
           android.permissions = INTERNET
           android.api = 33
           android.minapi = 21
           android.ndk = 25b
           android.sdk = 33
-          android.build_tools_version = 33.0.2
           android.accept_sdk_license_agreement = True
           [buildozer]
           log_level = 2
           warn_on_root = 0
           EOF
+
+      - name: Fix sdkmanager path + licenses
+        run: |
+          SDK=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $SDK/tools/bin
+          mkdir -p $SDK/cmdline-tools/latest/bin
+          mkdir -p $SDK/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $SDK/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $SDK/licenses/android-sdk-license
+          echo "y" | $SDK/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          # Baixa cmdline-tools se não tiver
+          if [ ! -f $SDK/cmdline-tools/latest/bin/sdkmanager ]; then
+            cd /tmp
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+            unzip -q tools.zip
+            cp -r cmdline-tools/* $SDK/cmdline-tools/latest/
+          fi
+          chmod +x $SDK/cmdline-tools/latest/bin/sdkmanager
+          ln -sf $SDK/cmdline-tools/latest/bin/sdkmanager $SDK/tools/bin/sdkmanager
+          cp $SDK/cmdline-tools/latest/bin/sdkmanager $SDK/tools/bin/sdkmanager || true
+          ls -lh $SDK/tools/bin/sdkmanager
+          ls -lh $SDK/cmdline-tools/latest/bin/sdkmanager
 
       - name: Build APK
         run: |
