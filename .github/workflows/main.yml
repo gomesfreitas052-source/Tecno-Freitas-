@@ -1,0 +1,31 @@
+name: Criar APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Instalar dependencias
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          pip install buildozer cython==0.29.33
+      - name: Inicializar buildozer
+        run: buildozer init || true
+      - name: Editar spec
+        run: |
+          sed -i 's/title = My Application/title = Tecno Freitas/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = tecnofreitas/' buildozer.spec
+          sed -i 's/source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,kv,atlas,ttf/' buildozer.spec
+          sed -i 's/#.*icon.filename.*/icon.filename = logo_tf.png/' buildozer.spec
+          echo "icon.filename = logo_tf.png" >> buildozer.spec
+      - name: Build APK
+        run: buildozer -v android debug
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: apk-tecno-freitas
+          path: bin/*.apk
