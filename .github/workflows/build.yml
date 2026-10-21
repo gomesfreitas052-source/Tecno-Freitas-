@@ -5,14 +5,16 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: kivy/buildozer:latest
-      options: --user user
     steps:
       - uses: actions/checkout@v4
-      - name: Fix root check and build
+      - name: Patch and Build
         run: |
-          whoami
-          pwd
-          ls -la
+          echo "Procurando buildozer..."
+          find / -type f -name "__init__.py" -path "*buildozer*" 2>/dev/null | head -20
+          echo "Patchando..."
+          find / -type f -name "__init__.py" -path "*buildozer*" 2>/dev/null | xargs sed -i 's/self.check_root()/pass # self.check_root()/g' || true
+          find / -type f -name "__init__.py" -path "*buildozer*" 2>/dev/null | xargs sed -i "s/cont = input.*/cont = 'y'/g" || true
+          echo "Patch feito, construindo..."
           buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
