@@ -2,25 +2,40 @@ name: Build APK
 on: [push]
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-      - name: Install deps
+          python-version: '3.10'
+      - name: Install Buildozer
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip install buildozer cython==0.29.33
-      - name: Build
+          sudo apt install -y openjdk-17-jdk zip unzip python3-pip
+          pip install --upgrade buildozer cython
+      - name: Create spec
         run: |
-          buildozer init || true
-          sed -i 's/title = My Application/title = Tecno Freitas/' buildozer.spec
-          sed -i 's/package.name = myapp/package.name = tecnofreitas/' buildozer.spec
-          buildozer -v android debug
+          rm -f buildozer.spec
+          echo "[app]" > buildozer.spec
+          echo "title = Tecno Freitas" >> buildozer.spec
+          echo "package.name = tecnofreitas" >> buildozer.spec
+          echo "package.domain = com.tecno.freitas" >> buildozer.spec
+          echo "source.dir = ." >> buildozer.spec
+          echo "source.include_exts = py,png,jpg,kv,atlas" >> buildozer.spec
+          echo "version = 0.1" >> buildozer.spec
+          echo "requirements = python3,kivy" >> buildozer.spec
+          echo "orientation = portrait" >> buildozer.spec
+          echo "fullscreen = 0" >> buildozer.spec
+          echo "[buildozer]" >> buildozer.spec
+          echo "log_level = 2" >> buildozer.spec
+          echo "[app:android]" >> buildozer.spec
+          echo "android.permissions = INTERNET" >> buildozer.spec
+          cat buildozer.spec
+      - name: Build APK
+        run: buildozer -v android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: apk-tecno-freitas
+          name: TecnoFreitas-APK
           path: bin/*.apk
