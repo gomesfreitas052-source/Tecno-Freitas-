@@ -4,12 +4,11 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     container:
-      image: kivy/buildozer:master
+      image: kivy/buildozer:latest
     steps:
       - uses: actions/checkout@v4
       - name: Build APK
-        run: |
-          buildozer android debug
+        run: buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
