@@ -7,8 +7,15 @@ jobs:
       image: kivy/buildozer:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build APK
-        run: buildozer android debug
+      - name: Fix root check and build
+        run: |
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+          sed -i 's/warn_on_root = 1/warn_on_root = 0/' buildozer.spec || true
+          sed -i 's/#.*warn_on_root.*/warn_on_root = 0/' buildozer.spec || true
+          grep -q "warn_on_root" buildozer.spec || echo "warn_on_root = 0" >> buildozer.spec
+          echo y | buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
