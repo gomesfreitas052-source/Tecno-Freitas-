@@ -5,19 +5,19 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install dependencies
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install deps
         run: |
           sudo apt update
           sudo apt install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.36
-      - name: Accept licenses
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "build-tools;33.0.2" || true
+          pip install cython==0.29.36 buildozer
+          yes | sdkmanager --licenses
+          sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
       - name: Create spec
         run: |
           cat > buildozer.spec << 'EOF'
@@ -32,13 +32,15 @@ jobs:
           orientation = portrait
           [buildozer]
           log_level = 2
-          warn_on_root = 1
           [app:android]
           android.api = 33
           android.minapi = 21
           android.ndk = 25b
+          android.sdk_path = /usr/local/lib/android/sdk
           android.accept_sdk_license_agreement = True
+          p4a.build_tools_version = 33.0.2
           EOF
+          cat buildozer.spec
       - name: Build APK
         run: buildozer -v android debug
       - name: Upload APK
