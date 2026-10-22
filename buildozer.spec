@@ -4,6 +4,7 @@
 title = TECNO FREITAS
 package.name = tecnofreitas
 package.domain = org.tecnofreitas
+p4a.branch = v2024.01.21
 
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas
