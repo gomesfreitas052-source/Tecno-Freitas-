@@ -12,21 +12,21 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Preparar licenças (FIX Build-Tools 37)
+      - name: Preparar tudo
         run: |
           sudo apt update && sudo apt install -y zip unzip libffi-dev libssl-dev
           pip install Cython==0.29.36 buildozer==1.5.0 python-for-android==2024.1.21 sh==1.14.3
-          # Cria as pastas e as licenças que o buildozer exige
-          mkdir -p $HOME/.android
-          touch $HOME/.android/repositories.cfg
+          mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools
-          # Licença principal do SDK (aceita tudo até o 37)
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "24333f8a63b6825ea9c5514f83c1059b8ea4b324" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-          cat $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          # COPIA o sdkmanager do sistema pra pasta do buildozer
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
+          cp -r $ANDROID_HOME/cmdline-tools/latest/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ || true
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+          ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
 
       - name: Compilar
         run: |
@@ -36,7 +36,7 @@ jobs:
           package.name = tecnofreitas
           package.domain = com.gomes.tecnofreitas
           source.dir = .
-          version = 1.0
+          version = 1.1
           requirements = python3,kivy
           orientation = portrait
           android.permissions = INTERNET
@@ -51,5 +51,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TecnoFreitas-V10-LICENSE-FIX
+          name: TecnoFreitas-V11-SDKMANAGER-FIX
           path: bin/*.apk
