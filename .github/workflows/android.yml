@@ -5,9 +5,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Liberar espaço (crucial)
+      - name: Liberar espaço
         run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           sudo docker image prune --all --force
           df -h
 
@@ -32,7 +32,7 @@ jobs:
           package.name = tecnofreitas
           package.domain = com.gomes.tecnofreitas
           source.dir = .
-          version = 1.5
+          version = 1.6
           requirements = python3,kivy
           orientation = portrait
           android.permissions = INTERNET
@@ -44,7 +44,10 @@ jobs:
           log_level = 1
           EOF
 
-          for d in "$HOME/.android" "$ANDROID_HOME" "$HOME/.buildozer/android/platform/android-sdk"; do
+          # 1. Licenças em todos os lugares
+          mkdir -p $HOME/.android
+          touch $HOME/.android/repositories.cfg
+          for d in "$HOME/.android" "$HOME/.buildozer/android/platform/android-sdk"; do
             mkdir -p $d/licenses
             echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $d/licenses/android-sdk-license
             echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $d/licenses/android-sdk-license
@@ -52,18 +55,14 @@ jobs:
             echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $d/licenses/android-sdk-preview-license
           done
 
-          # Fix sdkmanager
-          SDK_MGR=$(find $ANDROID_HOME -name "sdkmanager" | head -n 1)
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
-          cp -r $(dirname $SDK_MGR)/../* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
-          ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
-          
-          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --install "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" --licenses || true
-          
+          # 2. Instala o 37 usando o sdkmanager do sistema, mas instalando na pasta do buildozer
+          ls $ANDROID_HOME/cmdline-tools/latest/bin/
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --install "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" "platforms;android-33" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses || true
+
           buildozer android debug
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TecnoFreitas-APK-FINAL
+          name: TecnoFreitas-APK-V16
           path: bin/*.apk
