@@ -48,7 +48,7 @@ jobs:
           EOF
 
       - name: Compilar APK
-        run: |
+        run: yes |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
           buildozer android debug
