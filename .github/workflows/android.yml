@@ -23,7 +23,7 @@ jobs:
           ls $ANDROID_HOME/build-tools/
 
       - name: Compilar
-        run: |
+        run: yes|
           cat > buildozer.spec << 'EOF'
           [app]
           title = Tecno Freitas
