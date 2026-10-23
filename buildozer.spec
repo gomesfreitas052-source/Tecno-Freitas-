@@ -1,22 +1,22 @@
-
 [app]
 
 title = TECNO FREITAS
 package.name = tecnofreitas
-package.domain = org.tecnofreitas
-p4a.branch = v2024.01.21
+package.domain = ao.tecnofreitas
 
 source.dir = .
-source.include_exts = py,png,jpg,jpeg,kv,atlas
+source.include_exts = py,png,jpg,kv,json,txt
 
 version = 1.0
 
-requirements = python3,kivy
+requirements = python3,kivy,pyjnius
 
 orientation = portrait
 fullscreen = 0
 
-[buildozer]
+android.api = 33
+android.minapi = 23
+android.archs = arm64-v8a
+android.accept_sdk_license = True
 
-log_level = 2
-warn_on_root = 1
+p4a.branch = v2024.01.21
