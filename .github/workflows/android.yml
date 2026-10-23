@@ -23,6 +23,8 @@ jobs:
         run: |
           sudo apt install -y zip unzip libffi-dev libssl-dev -y
           pip install Cython==0.29.36 buildozer==1.5.0 python-for-android==2024.1.21 sh==1.14.3
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls $ANDROID_HOME/cmdline-tools/latest/bin/
 
       - name: Compilar
         run: |
@@ -32,7 +34,7 @@ jobs:
           package.name = tecnofreitas
           package.domain = com.gomes.tecnofreitas
           source.dir = .
-          version = 1.8
+          version = 1.9
           requirements = python3,kivy
           orientation = portrait
           android.permissions = INTERNET
@@ -44,7 +46,6 @@ jobs:
           log_level = 1
           EOF
 
-          # Licenças
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
@@ -52,30 +53,29 @@ jobs:
           echo "24333f8a63b6825ea9c5514f83c1059b8ea4b324" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
           echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
 
-          # 1ª tentativa - vai baixar SDK e NDK e falhar no sdkmanager (igual seu print)
+          # 1ª vez - baixa SDK e NDK (vai falhar no tools/bin igual seu print)
           buildozer android debug || true
 
-          echo "=== CRIANDO LINK DO SDKMANAGER ==="
-          # Acha onde o sdkmanager foi baixado
-          REAL_SDK=$(find $HOME/.buildozer -name "sdkmanager" -type f 2>/dev/null | head -n1)
-          echo "sdkmanager real: $REAL_SDK"
-          ls -lh $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/ || true
+          echo "=== FIX SDKMANAGER ==="
+          # Copia o sdkmanager do sistema pra dentro do buildozer
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
+          cp -r $ANDROID_HOME/cmdline-tools/latest/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ || true
           
-          # Cria a pasta antiga que o buildozer procura e linka
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
-          if [ -n "$REAL_SDK" ]; then
-            ln -sf $REAL_SDK $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-            chmod +x $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          fi
+          cp $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
+          chmod +x $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          chmod +x $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager
           
-          # Instala o 37 na marra
-          yes | $REAL_SDK --sdk_root=$HOME/.buildozer/android/platform/android-sdk --install "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" || true
-          yes | $REAL_SDK --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses || true
+          ls -lh $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          ls -lh $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager
 
-          # 2ª tentativa - agora vai
+          # Instala o 37 na pasta do buildozer
+          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --install "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" "platforms;android-33" || true
+
+          # 2ª vez - agora tem o sdkmanager no lugar antigo
           buildozer android debug
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TecnoFreitas-APK-V18
+          name: TecnoFreitas-V19
           path: bin/*.apk
