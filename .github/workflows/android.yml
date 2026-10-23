@@ -13,28 +13,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Fix 37 + sdkmanager
+      - name: Preparar
         run: |
           sudo apt update && sudo apt install -y zip unzip libffi-dev libssl-dev
           pip install Cython==0.29.36 buildozer==1.5.0 python-for-android==2024.1.21 sh==1.14.3
-          # 1. Licenças
-          for d in "$HOME/.android" "$ANDROID_HOME" "$HOME/.buildozer/android/platform/android-sdk"; do
-            mkdir -p $d/licenses
-            echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $d/licenses/android-sdk-license
-            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $d/licenses/android-sdk-license
-            echo "24333f8a63b6825ea9c5514f83c1059b8ea4b324" >> $d/licenses/android-sdk-license
-            echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $d/licenses/android-sdk-preview-license
-          done
-          # 2. Garante cmdline-tools no buildozer
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-          cp -r $ANDROID_HOME/cmdline-tools/latest/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
-          # 3. Cria o tools/bin/sdkmanager que ele procura
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
-          ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          ls -lh $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-          ls -lh $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager
 
-      - name: Compilar
+      - name: Compilar - Tentativa 1 + Fix
         run: |
           cat > buildozer.spec << 'EOF'
           [app]
@@ -42,7 +26,7 @@ jobs:
           package.name = tecnofreitas
           package.domain = com.gomes.tecnofreitas
           source.dir = .
-          version = 1.3
+          version = 1.4
           requirements = python3,kivy
           orientation = portrait
           android.permissions = INTERNET
@@ -53,9 +37,35 @@ jobs:
           [buildozer]
           log_level = 2
           EOF
+          # 1ª tentativa - vai falhar no 37 mas vai baixar o SDK
+          buildozer android debug || true
+
+          echo "=== FIX APÓS 1ª FALHA ==="
+          # Cria licenças em todo lugar de novo
+          for d in "$HOME/.android" "$ANDROID_HOME" "$HOME/.buildozer/android/platform/android-sdk"; do
+            mkdir -p $d/licenses
+            echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $d/licenses/android-sdk-license
+            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $d/licenses/android-sdk-license
+            echo "24333f8a63b6825ea9c5514f83c1059b8ea4b324" >> $d/licenses/android-sdk-license
+            echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $d/licenses/android-sdk-preview-license
+            echo "y" > $d/licenses/android-googletv-license || true
+          done
+
+          # Encontra o sdkmanager que o buildozer baixou
+          SDK_MGR=$(find $HOME/.buildozer -name "sdkmanager" -type f | head -n 1)
+          echo "Sdkmanager encontrado: $SDK_MGR"
+          # Instala o 37 na marra com YES
+          yes | $SDK_MGR --sdk_root=$HOME/.buildozer/android/platform/android-sdk --install "build-tools;37.0.0" "build-tools;33.0.2" "platform-tools" || true
+          yes | $SDK_MGR --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses || true
+
+          # Cria link tools/bin
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+          ln -sf $SDK_MGR $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
+
+          # 2ª tentativa - agora já tem o 37 instalado
           buildozer android debug
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TecnoFreitas-V13-FINAL-FIX
+          name: TecnoFreitas-V14-DOUBLE-RUN
           path: bin/*.apk
